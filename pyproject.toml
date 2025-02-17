@@ -7,7 +7,29 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+pydantic = "^2.10.6"
+pydantic-settings = "^2.7.1"
+python-dotenv = "^1.0.1"
+openai = "^1.63.0"
+pandas = "^2.2.3"
 
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
+testcontainers = "^4.9.0"
+mypy = "^1.13.0"
+
+[tool.pyright]
+strict = true
+reportMissingTypeStubs = true
+reportUnboundVariable = true
+reportMissingImports = false
+reportOptionalMemberAccess = true
+reportGeneralTypeIssues = true
 
 [build-system]
 requires = ["poetry-core"]
