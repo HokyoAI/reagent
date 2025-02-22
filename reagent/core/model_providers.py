@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict, List, Literal, Type
+from typing import Any, AsyncGenerator, Dict, List, Type
 
-from pydantic import BaseModel
-
+from ..types.configs import ModelConfig
 from .messages import Completion, CompletionChunk, Message
 from .tools import Tool
 
@@ -33,12 +32,6 @@ def provider_factory(provider_name: str, **kwargs) -> "ModelProvider":
     return provider_cls(**kwargs)
 
 
-class ModelConfig(BaseModel):
-    model: str
-    temperature: float
-    tool_choice: Literal["auto", "none", "required"] = "auto"
-
-
 class ModelProvider(ABC):
     """
     Abstract base class defining the interface for AI model providers.
@@ -52,71 +45,6 @@ class ModelProvider(ABC):
         """Register provider classes when they are defined."""
         super().__init_subclass__(**kwargs)
         _provider_registry[cls.__name__.lower()] = cls
-
-    @abstractmethod
-    def _prepare_model_config(self, config: ModelConfig) -> Dict[str, Any]:
-        """
-        Prepares the configuration for the model provider.
-
-        Args:
-            config (ModelConfig): The model configuration.
-
-        Returns:
-            Dict[str, Any]: A dictionary containing the configuration parameters.
-        """
-        pass
-
-    @abstractmethod
-    def _prepare_tools(self, tools: List[Tool]) -> Any:
-        """
-        Prepares a list of tools to be sent to the model provider API.
-
-        Args:
-            tools (List[Tool]): The tools to be converted.
-
-        Returns:
-            Any: The appropriate format for this model provider's tools.
-        """
-        pass
-
-    @abstractmethod
-    def _prepare_messages(self, messages: List[Message]) -> Any:
-        """
-        Prepares a list of messages to be sent to the model provider API.
-
-        Args:
-            messages (List[Message]): The messages to be converted.
-
-        Returns:
-            Any: The appropriate message format for this model provider's API.
-        """
-        pass
-
-    @abstractmethod
-    def _format_completion(self, completion: Any) -> Completion:
-        """
-        Formats the completion response to the generic completion response.
-
-        Args:
-            completion (Any): The completion to be formatted.
-
-        Returns:
-            Completion: The libraries completion format.
-        """
-        pass
-
-    @abstractmethod
-    def _format_completion_chunk(self, chunk: Any) -> CompletionChunk:
-        """
-        Formats the completion response to the generic completion response.
-
-        Args:
-            completion (Any): The completion to be formatted.
-
-        Returns:
-            Completion: The libraries completion format.
-        """
-        pass
 
     @abstractmethod
     async def complete(
@@ -144,8 +72,8 @@ class ModelProvider(ABC):
         self,
         *,
         model_config: ModelConfig,
-        messages: list[Message],
-        tools: list[Tool],
+        messages: List[Message],
+        tools: List[Tool],
     ) -> AsyncGenerator[CompletionChunk, None]:
         """
         Performs an asynchronous streaming completion request to the model.

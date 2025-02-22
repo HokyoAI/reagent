@@ -1,30 +1,36 @@
 import pytest
 from dotenv import load_dotenv
 
-from reagent.agent import Agent, AgentInput, AgentOutput
-from reagent.messages import Message
-from reagent.model_providers import ModelConfig
-from reagent.providers.openai import Groq
+from reagent.core.agent import Agent, AgentInput, AgentOutput
+from reagent.core.messages import SystemMessage, UserMessage, aggregate_iterable
+from reagent.core.tools import tool
+from reagent.llm_providers.groq import Groq
+from reagent.types.configs import ModelConfig, create_config
+
+from .settings import Settings
 
 
 @pytest.fixture
 def settings():
     load_dotenv(override=True)
-    from reagent.settings import Settings
 
     return Settings()  # pyright: ignore
 
 
 @pytest.fixture
-def groq(settings):
+def groq(settings: Settings):
     return Groq(
-        api_key=settings.api_key,
+        api_key=settings.groq_key,
     )
 
 
+@pytest.fixture
+def config():
+    return create_config(model="deepseek-r1-distill-llama-70b", temperature=0)
+
+
 @pytest.mark.asyncio
-async def test(groq):
-    config = ModelConfig(model="deepseek-r1-distill-llama-70b", temperature=0.2)
+async def test(groq: Groq, config: ModelConfig):
 
     chatbot = Agent(
         provider=groq,

@@ -30,8 +30,8 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from .agent import Tool
-from .errors import InterpreterError
+from ..agent import Tool
+from ..types.errors import InterpreterError
 
 logger = logging.getLogger(__name__)
 
