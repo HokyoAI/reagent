@@ -1,15 +1,14 @@
-from dataclasses import dataclass
 from typing import AsyncIterable, Dict, List, Literal, Optional, TypeVar
+
+from pydantic import BaseModel
 
 _T = TypeVar("_T")
 
 
-@dataclass
-class HasContent:
+class HasContent(BaseModel):
     content: str
 
 
-@dataclass
 class UserMessage(HasContent):
     role: Literal["user"] = "user"
 
@@ -18,12 +17,10 @@ class AssistantMessage(HasContent):
     role: Literal["assistant"] = "assistant"
 
 
-@dataclass
 class SystemMessage(HasContent):
     role: Literal["system"] = "system"
 
 
-@dataclass
 class ToolMessage(HasContent):
     tool_call_id: str
     role: Literal["tool"] = "tool"
@@ -34,16 +31,14 @@ type Message = UserMessage | AssistantMessage | SystemMessage | ToolMessage
 type FinishReason = Literal["stop", "length", "tool_calls", "content_filter"]
 
 
-@dataclass
-class ToolCall:
+class ToolCall(BaseModel):
     index: int
     id: str
     arguments: str
     name: str
 
 
-@dataclass
-class Completion:
+class Completion(BaseModel):
     id: str
     content: Optional[str]
     refusal: Optional[str]
@@ -52,16 +47,14 @@ class Completion:
     tool_calls: Optional[Dict[int, ToolCall]]
 
 
-@dataclass
-class ToolCallChunk:
+class ToolCallChunk(BaseModel):
     index: int
     id: Optional[str]
     arguments: Optional[str]
     name: Optional[str]
 
 
-@dataclass
-class CompletionChunk:
+class CompletionChunk(BaseModel):
     id: str
     content: Optional[str]
     refusal: Optional[str]

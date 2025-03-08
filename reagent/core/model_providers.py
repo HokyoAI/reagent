@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict, List, Type
+from typing import Any, AsyncGenerator, Dict, List, Literal, Type
 
-from ..types.configs import ModelConfig
+from pydantic import BaseModel
+
 from .messages import Completion, CompletionChunk, Message
 from .tools import Tool
 
@@ -30,6 +31,41 @@ def provider_factory(provider_name: str, **kwargs) -> "ModelProvider":
             f"Available providers are: {registered_providers}"
         )
     return provider_cls(**kwargs)
+
+
+class ToolConfig(BaseModel):
+    tool_choice: Literal["auto", "none", "required"] = "auto"
+    parallel_tool_calls: bool = False
+
+
+class GenericConfig(BaseModel):
+    model: str
+    temperature: float
+
+
+class ModelConfig(BaseModel):
+    generic: GenericConfig
+    tool: ToolConfig
+
+
+# Convenience factory function
+def create_config(
+    model: str,
+    temperature: float = 0.7,
+    tool_choice: Literal["auto", "none", "required"] = "auto",
+    parallel_tool_calls: bool = False,
+) -> ModelConfig:
+    """Create a ModelConfig with sensible defaults."""
+    return ModelConfig(
+        generic=GenericConfig(
+            model=model,
+            temperature=temperature,
+        ),
+        tool=ToolConfig(
+            tool_choice=tool_choice,
+            parallel_tool_calls=parallel_tool_calls,
+        ),
+    )
 
 
 class ModelProvider(ABC):
@@ -87,3 +123,30 @@ class ModelProvider(ABC):
             AsyncGenerator[CompletionChunk, None]: An async generator that yields response chunks.
         """
         pass
+
+
+class Model(BaseModel):
+    provider: ModelProvider
+    config: ModelConfig
+
+    async def complete(
+        self,
+        *,
+        messages: List[Message],
+        tools: List[Tool],
+    ) -> Completion:
+        return await self.provider.complete(
+            model_config=self.config, messages=messages, tools=tools
+        )
+
+    async def stream(
+        self,
+        *,
+        messages: List[Message],
+        tools: List[Tool],
+    ) -> AsyncGenerator[CompletionChunk, None]:
+        generator = await self.provider.stream(
+            model_config=self.config, messages=messages, tools=tools
+        )
+        async for chunk in generator:
+            yield chunk

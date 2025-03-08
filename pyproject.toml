@@ -10,6 +10,7 @@ python = "^3.12"
 pydantic = "^2.10.6"
 openai = "^1.63.0"
 pandas = "^2.2.3"
+hatchet-sdk = "^0.47.0"
 
 
 [tool.poetry.group.dev]
@@ -22,6 +23,7 @@ python-dotenv = "^1.0.1"
 pydantic-settings = "^2.7.1"
 testcontainers = "^4.9.0"
 mypy = "^1.13.0"
+mkdocs-material = "^9.6.7"
 
 
 [tool.pyright]

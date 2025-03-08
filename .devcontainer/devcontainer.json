@@ -45,7 +45,8 @@
           "oderwat.indent-rainbow",
           "streetsidesoftware.code-spell-checker",
           "usernamehw.errorlens",
-          "eamodio.gitlens"
+          "eamodio.gitlens",
+          "redhat.vscode-yaml"
         ]
       }
     }
