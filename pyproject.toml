@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "reagent"
-version = "0.1.0"
+version = "1.0.0"
 description = ""
 authors = ["Maguire <papaymaguire@gmail.com>"]
 readme = "README.md"
@@ -11,7 +11,12 @@ pydantic = "^2.10.6"
 openai = "^1.63.0"
 pandas = "^2.2.3"
 hatchet-sdk = "^0.47.0"
+click = {version = "^8.1.8", optional = true}
+httpx = "^0.28.1"
+cryptography = "^44.0.2"
 
+[tool.poetry.extras]
+cli=["click"]
 
 [tool.poetry.group.dev]
 optional = true
@@ -23,8 +28,32 @@ python-dotenv = "^1.0.1"
 pydantic-settings = "^2.7.1"
 testcontainers = "^4.9.0"
 mypy = "^1.13.0"
+uvicorn = "^0.34.0"
+pytest-cov = "^6.0.0"
 mkdocs-material = "^9.6.7"
 
+[tool.pytest.ini_options]
+# Basic pytest configuration
+testpaths = ["tests"]
+python_files = "*_test.py"
+# For pytest-asyncio
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["ilpas"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:"
+]
+
+# Optional HTML report settings
+[tool.coverage.html]
+directory = "coverage_html_report"
 
 [tool.pyright]
 strict = true
