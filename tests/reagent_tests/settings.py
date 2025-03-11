@@ -6,3 +6,5 @@ class Settings(BaseSettings):
 
     openai_key: str
     groq_key: str
+    hatchet_client_token: str
+    hatchet_client_tls_strategy: str

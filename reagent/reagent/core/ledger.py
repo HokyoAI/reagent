@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from functools import wraps
 from typing import (
+    Any,
     Awaitable,
     Callable,
     ClassVar,
@@ -8,28 +9,46 @@ from typing import (
     List,
     Optional,
     ParamSpec,
+    Set,
     TypeVar,
     cast,
 )
 
 from pydantic import BaseModel
 
-from .memory import Memory
+from .store import Store, StoreModel
 
 
-class TimeStampedEntry[_T: BaseModel](BaseModel):
-    timestamp: str
-    source: str
-    type: str
+class LedgerEntryV1(StoreModel):
+    __search_fields__: ClassVar[Set[str]] = set(["task_id", "source", "type"])
+    __version__: ClassVar[str] = "1.0"
+
+    task_id: str  # task_id
+    source: str  # node guid
+    type: str  # the call made
+    data: BaseModel
 
 
-class Ledger(Memory):
-    auto_revision: ClassVar[bool] = False
+class LedgerModelV1(StoreModel):
+    __search_fields__: ClassVar[Set[str]] = set()
+    __version__: ClassVar[str] = "1.0"
 
-    @abstractmethod
-    async def add_entry(
-        self, *, entry_type: str, source: str, namespace: Optional[str], data: BaseModel
-    ) -> None:
+
+class LedgerEntryRelV1(StoreModel):
+    __search_fields__: ClassVar[Set[str]] = set(["entry_id", "ledger_id"])
+    __version__: ClassVar[str] = "1.0"
+
+    entry_id: str
+    ledger_id: str
+    index: int
+
+
+class Ledger:
+
+    def __init__(self, *, store: Store, namespace: Optional[str]):
+        self.namespace = namespace
+
+    async def add_entry(self, *, entry: LedgerEntryV1) -> None:
         """
         Add an entry to the ledger for a specific task.
 
@@ -37,6 +56,17 @@ class Ledger(Memory):
             task_id: The ID of the task this entry belongs to
             entry_type: Type of the entry (e.g., "plan", "execution", "result")
             data: The data to store in the entry
+        """
+        pass
+
+    @abstractmethod
+    async def stream_entry(
+        self, *, entry_type: str, source: str, namespace: Optional[str], data: Any
+    ):
+        """
+        Stream an entry to the ledger for a specific task.
+
+        Allows for ledgers to be show as a UI in real-time.
         """
         pass
 
@@ -70,76 +100,6 @@ class Ledger(Memory):
         Returns:
             The latest entry or None if no entries exist
         """
-        pass
-
-    @abstractmethod
-    async def initialize(self) -> None:
-        """
-        Initialize the database connection and setup.
-
-        This method should be called before any other methods are used.
-        """
-        pass
-
-    @abstractmethod
-    async def close(self) -> None:
-        """
-        Close the database connection and release resources.
-
-        This method should be called when the store is no longer needed.
-        """
-        pass
-
-    def save(
-        self,
-        *,
-        info: BaseModel,
-        namespace: Optional[str],
-        metadata: TimeStampedEntry,
-    ) -> str:
-        """Store data in memory and return a unique identifier."""
-        self.add_entry(
-            namespace=namespace,
-        )
-
-    def revise(
-        self,
-        *,
-        namespace: Optional[str],
-        identifier: str,
-        revision: str,
-    ) -> None:
-        """Add a revision to memory that updates, clarifies, or corrects the original data."""
-        pass
-
-    def redact(
-        self,
-        *,
-        namespace: Optional[str],
-        identifier: str,
-        reason: str,
-    ) -> None:
-        """Mark data in memory as invalid."""
-        pass
-
-    def retrieve(
-        self,
-        *,
-        namespace: Optional[str],
-        identifier: str,
-    ) -> BaseModel:
-        """Retrieve data from memory using its identifier."""
-        pass
-
-    @abstractmethod
-    def search(
-        self,
-        *,
-        namespace: Optional[str],
-        query: str,
-        limit: Optional[int] = None,
-    ) -> List[BaseModel]:
-        """Search memory for relevant data based on query."""
         pass
 
 

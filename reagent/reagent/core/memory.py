@@ -3,10 +3,12 @@ from typing import ClassVar, List, Literal, Optional
 
 from pydantic import BaseModel
 
-from .store import Store
+
+class Memory(BaseModel):
+    pass
 
 
-class Memory(BaseModel, ABC):
+class MemoryStore(BaseModel, ABC):
     """
     Memory is append only. Earlier memories can be marked as invalid, but never removed.
     This allows memory to be used for auditing, and also preserves more information.
