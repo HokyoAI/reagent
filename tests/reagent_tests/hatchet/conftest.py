@@ -8,21 +8,40 @@ from typing import AsyncGenerator, Callable, cast
 import psutil
 import pytest
 import pytest_asyncio
+from dotenv import load_dotenv
 from hatchet_sdk import Hatchet
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_nested_delimiter="__")
+
+    hatchet_client_token: str
+    hatchet_client_tls_strategy: str
+
+
+@pytest.fixture(scope="session")
+def settings() -> Settings:
+    load_dotenv(override=True)
+    return Settings()  # type: ignore
 
 
 @pytest_asyncio.fixture(scope="session")
-async def aiohatchet() -> AsyncGenerator[Hatchet, None]:
+async def aiohatchet(settings) -> AsyncGenerator[Hatchet, None]:
     yield Hatchet(debug=True)
 
 
 @pytest.fixture(scope="session")
-def hatchet() -> Hatchet:
+def hatchet(settings) -> Hatchet:
     return Hatchet(debug=True)
 
 
 @pytest.fixture()
 def worker(request: pytest.FixtureRequest):
+    """
+    Runs the worker.py file in the same directory as the test file.
+    Runs the worker in a subprocess and yields the process object.
+    """
 
     worker_file = (request.path.parent / "worker.py").resolve()
 
