@@ -239,6 +239,11 @@ class Agent(BaseModel, Taskable):
         # initialize the action and memory spaces for the task
         # any future phase can ask for changes to the spaces if necessary
 
+        """
+        agents should bias towards completing the task themselves if possible
+        this helps prevent huge tree structures of decomposition
+        recursive agents could get stuck in a loop if they always delegate
+        """
         await self._planning_phase(task=task, task_memory=task_memory)
         # plan the task, using the task memory to inform the plan
 

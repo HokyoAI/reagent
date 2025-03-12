@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict, List, Literal, Type
+from typing import Any, AsyncGenerator, ClassVar, Dict, List, Literal, Type
 
 from pydantic import BaseModel
 
@@ -77,10 +77,13 @@ class ModelProvider(ABC):
     model providers must implement.
     """
 
+    provider_name: ClassVar[str]
+
     def __init_subclass__(cls, **kwargs):
         """Register provider classes when they are defined."""
         super().__init_subclass__(**kwargs)
-        _provider_registry[cls.__name__.lower()] = cls
+        cls.provider_name = cls.__name__.lower()
+        _provider_registry[cls.provider_name] = cls
 
     @abstractmethod
     async def complete(
@@ -126,8 +129,11 @@ class ModelProvider(ABC):
 
 
 class Model(BaseModel):
-    provider: ModelProvider
+    provider_name: str
     config: ModelConfig
+
+    def __post_init__(self):
+        self.provider = provider_factory(self.provider_name)
 
     async def complete(
         self,

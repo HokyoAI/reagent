@@ -13,9 +13,9 @@ from typing import (
     TypedDict,
 )
 
-from reagent.core.models.errors import ConflictError, NotFoundError
-from reagent.core.models.types import JsonValue
 from reagent.core.store import Store, StoreModel
+from reagent.reagent.core.errors import ConflictError, NotFoundError
+from reagent.reagent.core.types.types import JsonValue
 
 
 class DataStructure(TypedDict):

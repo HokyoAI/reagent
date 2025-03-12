@@ -1,5 +1,18 @@
 name: hatchet-lite
 services:
+  neon:
+    image: neondatabase/neon:latest
+    container_name: neondb
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=neon
+      - POSTGRES_PASSWORD=neonpwd
+      - POSTGRES_DB=neondb
+    volumes:
+      - neon_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    command: ["postgres", "-c", "wal_level=logical"]
   postgres:
     image: postgres:15.6
     command: postgres -c 'max_connections=200'
@@ -46,6 +59,7 @@ services:
       - "hatchet_lite_config:/config"
  
 volumes:
+  neon_data:
   hatchet_lite_postgres_data:
   hatchet_lite_rabbitmq_data:
   hatchet_lite_config:

@@ -1,11 +1,24 @@
 import ast
 import asyncio
 import inspect
+import json
 import textwrap
+from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Awaitable, Callable, List, ParamSpec, Tuple, TypeVar
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    ParamSpec,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
-import astor
 from hatchet_sdk import Hatchet
 from hatchet_sdk.hatchet import step, workflow
 from hatchet_sdk.workflow import WorkflowMeta
@@ -19,8 +32,99 @@ def checkpoint(*args, name: str, **kwargs):
     pass
 
 
-def serialize_args(args, **kwargs):
-    return args, kwargs
+def serialize_arg(value: Any) -> Any:
+    """
+    Convert a value to a JSON-serializable format.
+
+    Args:
+        value: Any Python value
+
+    Returns:
+        JSON-serializable version of the value
+    """
+    # Handle None
+    if value is None:
+        return None
+
+    # Handle primitives
+    if isinstance(value, (str, int, float, bool)):
+        return value
+
+    # Handle Pydantic models
+    if isinstance(value, BaseModel):  # Pydantic v2
+        return value.model_dump()
+
+    # Handle lists recursively
+    if isinstance(value, list):
+        return [serialize_arg(item) for item in value]
+
+    # Handle dictionaries recursively
+    if isinstance(value, dict):
+        return {k: serialize_arg(v) for k, v in value.items()}
+
+    raise ValueError(f"<Non-serializable object of type {type(value).__name__}>")
+
+
+def deserialize_value(value: Any, model: Optional[type[BaseModel]] = None) -> Any:
+    """
+    Convert a serialized value back to its original type, including Pydantic models.
+
+    Args:
+        value: The serialized value (dict, list, or primitive)
+        expected_type: The expected type to convert to (if known)
+
+    Returns:
+        The deserialized value
+    """
+    # Handle None
+    if value is None:
+        return None
+
+    if model is not None:
+        return model.model_validate(value)
+
+    if isinstance(value, (str, int, float, bool)):
+        return value
+
+    # Handle Pydantic models
+
+    # Handle primitives
+    if isinstance(expected_type, type) and issubclass(
+        expected_type, (str, int, float, bool)
+    ):
+        return expected_type(value)
+
+    # Handle Pydantic models
+    if (
+        isinstance(expected_type, type)
+        and issubclass(expected_type, BaseModel)
+        and isinstance(value, dict)
+    ):
+        return expected_type.parse_obj(value)  # For Pydantic v1
+        # For Pydantic v2, use: return expected_type.model_validate(value)
+
+    # Handle lists
+    origin = get_origin(expected_type)
+    if origin is list or origin is List:
+        item_type = get_args(expected_type)[0] if get_args(expected_type) else Any
+        if isinstance(value, list):
+            return [deserialize_value(item, item_type) for item in value]
+        return value
+
+    # Handle dictionaries
+    if origin is dict or origin is Dict:
+        if not isinstance(value, dict):
+            return value
+        key_type, val_type = (
+            get_args(expected_type) if get_args(expected_type) else (Any, Any)
+        )
+        return {
+            deserialize_value(k, key_type): deserialize_value(v, val_type)
+            for k, v in value.items()
+        }
+
+    # For other cases, return as-is
+    return value
 
 
 """
@@ -34,6 +138,20 @@ Gotchas:
 - When registering the workflow, the workflow must be instantiated func.workflow_ref()
 - When calling the workflow function, hatchet aio is used, loops must be configured properly
 """
+
+
+@dataclass
+class VariableDef:
+    name: str
+    model: Optional[Type[BaseModel]]
+
+
+@dataclass
+class StepDef:
+    name: str
+    body: List[ast.stmt | ast.Expr]
+    inputs: List[VariableDef]
+    outputs: List[VariableDef]
 
 
 def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
@@ -61,6 +179,10 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
         if not is_async:
             raise ValueError("Function must be async")
 
+        # Get the signature of the original function
+        sig = inspect.signature(func)
+        parameters = list(sig.parameters.values())
+
         # Get the source code of the function
         source = inspect.getsource(func)
         # Dedent the source code to fix indentation issues
@@ -80,7 +202,7 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
         func_body = func_defn.body
 
         # Split the function body into steps based on checkpoint occurrences
-        steps: List[Tuple[str, List[ast.stmt | ast.Expr]]] = []
+        steps: List[StepDef] = []
         step_name: str = "begin"
         current_step: List[ast.stmt | ast.Expr] = []
 
@@ -99,6 +221,11 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
             ):  # check for checkpoint call
                 if not current_step:
                     continue  # ignore checkpoints with no filling
+
+                checkpoint_args = stmt.value.args
+                for arg in checkpoint_args:
+                    if isinstance(arg, ast.Name):
+                        variable_def = VariableDef(name=arg.id, model=None)
 
                 # Check if the checkpoint has an argument
                 if hasattr(stmt.value, "args") and stmt.value.args:
@@ -157,6 +284,7 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
             if the flag is set, the step should return immediately.
             """
             decorator_keywords = []
+            previous_step_name = None
             if i != 0:
                 previous_step_name = steps[i - 1][0]
                 decorator_keywords.append(
@@ -175,7 +303,78 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
                 keywords=decorator_keywords,
             )
 
-            step_prelude = ""  # checks if workflow_done is set and returns if it is
+            """
+            if i == 0:
+                step_inputs = ctx.workflow_input()
+            else:
+                step_inputs = ctx.step_output(<past step name>)
+            """
+            assign_step_inputs = None
+            if previous_step_name is None:
+                assign_step_inputs = ast.Assign(
+                    targets=[ast.Name(id="step_inputs", ctx=ast.Store())],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            attr="workflow_input",
+                            ctx=ast.Load(),
+                        ),
+                        args=[],
+                        keywords=[],
+                    ),
+                )
+            else:
+                assign_step_inputs = ast.Assign(
+                    targets=[ast.Name(id="step_inputs", ctx=ast.Store())],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            attr="step_output",
+                            ctx=ast.Load(),
+                        ),
+                        args=[ast.Constant(value=previous_step_name)],
+                        keywords=[],
+                    ),
+                )
+
+            """
+            this will not cancel other parallel steps in the workflow
+
+            workflow_done = step_inputs.get("workflow_done", False)
+            if workflow_done:
+                return step_inputs
+            """
+            workflow_done_check = [
+                ast.Assign(
+                    targets=[ast.Name(id="workflow_done", ctx=ast.Store())],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id="step_inputs", ctx=ast.Load()),
+                            attr="get",
+                            ctx=ast.Load(),
+                        ),
+                        args=[
+                            ast.Constant(value="workflow_done"),
+                            ast.Constant(value=False),
+                        ],
+                        keywords=[],
+                    ),
+                ),
+                ast.If(
+                    test=ast.Name(id="workflow_done", ctx=ast.Load()),
+                    body=[ast.Return(value=ast.Name(id="step_inputs", ctx=ast.Load()))],
+                    orelse=[],
+                ),
+            ]
+
+            argument_assignment = []
+
+            step_prelude = [
+                assign_step_inputs,
+                *workflow_done_check,
+                *argument_assignment,
+            ]
+            # checks if workflow_done is set and returns if it is
             # does argument unpacking from the context
 
             step_epilogue = (
@@ -238,7 +437,6 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
         module = ast.Module(body=[class_ast], type_ignores=[])
         ast.fix_missing_locations(module)
 
-        print(astor.to_source(module))
         compiled_code = compile(module, "<fht_generated>", "exec")
         namespace: dict[str, Any] = {
             "workflow": workflow,  # The workflow decorator
@@ -259,6 +457,28 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
                 input=kwargs,
             )
             return await workflow_run.result()
+
+        @wraps(func)
+        async def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+
+            # Create a dictionary to store all arguments
+            arg_dict: Dict[str, Any] = {}
+
+            # Map positional arguments to their parameter names
+            for i, arg in enumerate(args):
+                if i < len(parameters):
+                    arg_dict[parameters[i].name] = arg
+
+            for k, v in kwargs.items():
+                arg_dict[k] = dict(v)
+            arg_dict.update(kwargs)
+
+            # Convert to JSON if needed
+            json_args = json.dumps(arg_dict)
+            print(f"Arguments as JSON: {json_args}")
+
+            # Call the original function
+            return await func(*args, **kwargs)
 
         new_func.workflow_ref = workflow_ref  # type: ignore cannot figure out how to type this
 

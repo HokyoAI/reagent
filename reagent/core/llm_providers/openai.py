@@ -11,8 +11,15 @@ from openai.types.chat import (
 from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 from pydantic import BaseModel
 
-from ..messages import Completion, CompletionChunk, Message, ToolCall, ToolCallChunk
-from ..model_providers import ModelConfig, ModelProvider
+from reagent.reagent.core.messages import (
+    Completion,
+    CompletionChunk,
+    Message,
+    ToolCall,
+    ToolCallChunk,
+)
+from reagent.reagent.core.model_providers import ModelConfig, ModelProvider
+
 from ..tools import Tool
 
 
@@ -134,7 +141,9 @@ class OpenAI(ModelProvider):
         choice = completion.choices[0]
         message = choice.message
         finish_reason = choice.finish_reason
-        if finish_reason == "function_call":
+        if (
+            finish_reason == "function_call"
+        ):  # pragma: no cover # deprecated OpenAI response
             finish_reason = "tool_calls"
         reasoning = None
         if message.model_extra:
@@ -194,7 +203,9 @@ class OpenAI(ModelProvider):
         choice = chunk.choices[0]
         delta = choice.delta
         finish_reason = choice.finish_reason
-        if finish_reason == "function_call":
+        if (
+            finish_reason == "function_call"
+        ):  # pragma: no cover # deprecated OpenAI response
             finish_reason = "tool_calls"
         reasoning = None
         if delta.model_extra:
