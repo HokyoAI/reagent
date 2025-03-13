@@ -1,4 +1,8 @@
-from typing import Dict, List, Literal, Union
+from typing import Dict, Union
+
+from pydantic import BaseModel
+
+type AM = BaseModel  # shorthand for BaseModel
 
 # type JsonValue = List[JsonValue] | Dict[
 #     str, JsonValue

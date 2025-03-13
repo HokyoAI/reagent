@@ -65,68 +65,6 @@ def serialize_arg(value: Any) -> Any:
     raise ValueError(f"<Non-serializable object of type {type(value).__name__}>")
 
 
-def deserialize_value(value: Any, model: Optional[type[BaseModel]] = None) -> Any:
-    """
-    Convert a serialized value back to its original type, including Pydantic models.
-
-    Args:
-        value: The serialized value (dict, list, or primitive)
-        expected_type: The expected type to convert to (if known)
-
-    Returns:
-        The deserialized value
-    """
-    # Handle None
-    if value is None:
-        return None
-
-    if model is not None:
-        return model.model_validate(value)
-
-    if isinstance(value, (str, int, float, bool)):
-        return value
-
-    # Handle Pydantic models
-
-    # Handle primitives
-    if isinstance(expected_type, type) and issubclass(
-        expected_type, (str, int, float, bool)
-    ):
-        return expected_type(value)
-
-    # Handle Pydantic models
-    if (
-        isinstance(expected_type, type)
-        and issubclass(expected_type, BaseModel)
-        and isinstance(value, dict)
-    ):
-        return expected_type.parse_obj(value)  # For Pydantic v1
-        # For Pydantic v2, use: return expected_type.model_validate(value)
-
-    # Handle lists
-    origin = get_origin(expected_type)
-    if origin is list or origin is List:
-        item_type = get_args(expected_type)[0] if get_args(expected_type) else Any
-        if isinstance(value, list):
-            return [deserialize_value(item, item_type) for item in value]
-        return value
-
-    # Handle dictionaries
-    if origin is dict or origin is Dict:
-        if not isinstance(value, dict):
-            return value
-        key_type, val_type = (
-            get_args(expected_type) if get_args(expected_type) else (Any, Any)
-        )
-        return {
-            deserialize_value(k, key_type): deserialize_value(v, val_type)
-            for k, v in value.items()
-        }
-
-    # For other cases, return as-is
-    return value
-
-
 """
 Gotchas:
 - Code in different checkpoints will be in different scopes entirely
@@ -158,7 +96,7 @@ def fht(hatchet: Hatchet, checkpoint_symbol="checkpoint"):
     """
     Fast Hatchet Transform (FHT) decorator.
 
-    Transforms a function into a class with separate executable methods for each step,
+    Transforms a taskable into a hatchet native workflow with separate executable methods for each step,
     splitting at each occurrence of the checkpoint_symbol.
 
     Args:

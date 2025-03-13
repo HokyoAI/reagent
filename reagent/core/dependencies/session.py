@@ -5,7 +5,7 @@ from fast_depends import Depends, inject
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from reagent.reagent.core.dependencies.engine import get_engine
+from reagent.core.dependencies.engine import get_engine
 
 
 @inject

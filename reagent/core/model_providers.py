@@ -1,9 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, ClassVar, Dict, List, Literal, Type
+from typing import AsyncGenerator, AsyncIterable, ClassVar, Dict, List, Literal, Type
 
 from pydantic import BaseModel
 
-from .messages import Completion, CompletionChunk, Message
+from .messages import (
+    Completion,
+    CompletionChunk,
+    Message,
+    MessageList,
+    aggregate_completion_chunk_aiterable,
+)
+from .taskable import Taskable
 from .tools import Tool
 
 _provider_registry: Dict[str, Type["ModelProvider"]] = {}
@@ -128,31 +135,30 @@ class ModelProvider(ABC):
         pass
 
 
-class Model(BaseModel):
+class ModelCall(MessageList):
+    tools: List[Tool]
+
+
+class Model(BaseModel, Taskable[ModelCall, CompletionChunk, Completion]):
     provider_name: str
     config: ModelConfig
+    input_model = ModelCall
+    chunk_output_model = CompletionChunk
+    aggregate_output_model = Completion
 
     def __post_init__(self):
         self.provider = provider_factory(self.provider_name)
 
-    async def complete(
-        self,
-        *,
-        messages: List[Message],
-        tools: List[Tool],
-    ) -> Completion:
+    async def stream(self, input: ModelCall) -> AsyncGenerator[CompletionChunk, None]:
+        generator = await self.provider.stream(
+            model_config=self.config, messages=input.messages, tools=input.tools
+        )
+        return generator
+
+    async def complete(self, input: ModelCall) -> Completion:
         return await self.provider.complete(
-            model_config=self.config, messages=messages, tools=tools
+            model_config=self.config, messages=input.messages, tools=input.tools
         )
 
-    async def stream(
-        self,
-        *,
-        messages: List[Message],
-        tools: List[Tool],
-    ) -> AsyncGenerator[CompletionChunk, None]:
-        generator = await self.provider.stream(
-            model_config=self.config, messages=messages, tools=tools
-        )
-        async for chunk in generator:
-            yield chunk
+    async def aggregate(self, chunks: AsyncIterable[CompletionChunk]) -> Completion:
+        return await aggregate_completion_chunk_aiterable(chunks)

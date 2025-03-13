@@ -14,17 +14,18 @@ httpx = "^0.28.1"
 openai = "^1.63.0"
 cryptography = "^44.0.2"
 sqlmodel = "^0.0.24"
+psycopg = {extras = ["binary", "pool"], version = "^3.2.6"}
 alembic = "^1.15.1"
 hatchet-sdk = "^0.47.0"
 fast-depends = "^2.4.12"
 fastapi = "^0.115.11"
-uvicorn = "^0.34.0"
 sse-starlette = "^2.2.1"
 python-multipart = "^0.0.20"
+uvicorn = {version = "^0.34.0", optional = true}
 typer = {version = "^0.15.2", optional = true}
 
 [tool.poetry.extras]
-cli=["typer"]
+cli=["typer", "uvicorn"]
 
 [tool.poetry.group.dev]
 optional = true
@@ -33,6 +34,7 @@ optional = true
 pytest = "^8.3.3"
 pytest-asyncio = "^0.24.0"
 testcontainers = "^4.9.0"
+uvicorn = "^0.34.0"
 mypy = "^1.13.0"
 pytest-cov = "^6.0.0"
 mkdocs-material = "^9.6.7"

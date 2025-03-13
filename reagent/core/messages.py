@@ -28,6 +28,11 @@ class ToolMessage(HasContent):
 
 type Message = UserMessage | AssistantMessage | SystemMessage | ToolMessage
 
+
+class MessageList(BaseModel):
+    messages: List[Message]
+
+
 type FinishReason = Literal["stop", "length", "tool_calls", "content_filter"]
 
 
@@ -177,7 +182,9 @@ async def complete_aggregate(aggregate: CompletionChunk) -> Completion:
     )
 
 
-async def aggregate_iterable(chunks: AsyncIterable[CompletionChunk]) -> Completion:
+async def aggregate_completion_chunk_aiterable(
+    chunks: AsyncIterable[CompletionChunk],
+) -> Completion:
     """Aggregate multiple completion chunks into a single completion."""
     aggregate: CompletionChunk | None = None
     async for chunk in chunks:

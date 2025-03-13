@@ -1,6 +1,6 @@
 from hatchet_sdk import Hatchet
 
-from reagent.reagent.core.dependencies.settings import get_settings
+from reagent.core.dependencies.settings import get_settings
 
 config = get_settings()
 hatchet = Hatchet()
