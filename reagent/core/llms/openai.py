@@ -11,30 +11,32 @@ from openai.types.chat import (
 from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 from pydantic import BaseModel
 
-from reagent.reagent.core.messages import (
+from reagent.core.llms.llms import LlmConfig, LlmProvider
+from reagent.core.llms.messages import (
     Completion,
     CompletionChunk,
     Message,
     ToolCall,
     ToolCallChunk,
 )
-from reagent.reagent.core.model_providers import ModelConfig, ModelProvider
 
-from ..tools import Tool
+from ..tool import Tool
 
 
-class OpenAI(ModelProvider):
+class OpenAI(LlmProvider):
+
+    provider_name = "openai"
 
     def __init__(self, api_key: str, api_base: str = "https://api.openai.com/v1"):
         self.api_key = api_key
         self.client = AsyncOpenAI(api_key=api_key, base_url=api_base)
 
-    def _prepare_generic_config(self, config: ModelConfig) -> Dict[str, Any]:
+    def _prepare_generic_config(self, config: LlmConfig) -> Dict[str, Any]:
         """
         Prepares the generic configuration for the model provider.
 
         Args:
-            config (ModelConfig): The model configuration.
+            config (LlmConfig): The model configuration.
 
         Returns:
             Dict[str, Any]: A dictionary containing the configuration parameters.
@@ -42,7 +44,7 @@ class OpenAI(ModelProvider):
         return config.generic.model_dump()
 
     def _prepare_tool_params(
-        self, tools: List[Tool[BaseModel, BaseModel]], config: ModelConfig
+        self, tools: List[Tool[BaseModel, BaseModel]], config: LlmConfig
     ) -> Dict[str, Any]:
         """
         Prepares a list of tools to be sent to the OpenAI API.
@@ -58,7 +60,7 @@ class OpenAI(ModelProvider):
             tool_params = {
                 "tools": [
                     pydantic_function_tool(
-                        tool.input_model, name=tool.name, description=tool.description
+                        tool.input_model, name=tool.guid, description=tool.description
                     )
                     for tool in tools
                 ],
@@ -226,22 +228,22 @@ class OpenAI(ModelProvider):
     async def complete(
         self,
         *,
-        model_config: ModelConfig,
+        config: LlmConfig,
         messages: List[Message],
         tools: List[Tool],
     ):
         response = await self.client.chat.completions.create(
             stream=False,
             messages=self._prepare_messages(messages),
-            **self._prepare_tool_params(tools, model_config),
-            **self._prepare_generic_config(config=model_config),
+            **self._prepare_tool_params(tools, config),
+            **self._prepare_generic_config(config=config),
         )
         return self._format_completion(response)
 
     async def stream(
         self,
         *,
-        model_config: ModelConfig,
+        config: LlmConfig,
         messages: List[Message],
         tools: List[Tool],
     ):
@@ -250,8 +252,8 @@ class OpenAI(ModelProvider):
             response = await self.client.chat.completions.create(
                 stream=True,
                 messages=self._prepare_messages(messages),
-                **self._prepare_tool_params(tools, model_config),
-                **self._prepare_generic_config(config=model_config),
+                **self._prepare_tool_params(tools, config),
+                **self._prepare_generic_config(config=config),
             )
             async for chunk in response:
                 yield self._format_completion_chunk(chunk)

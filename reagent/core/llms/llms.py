@@ -3,6 +3,8 @@ from typing import AsyncGenerator, AsyncIterable, ClassVar, Dict, List, Literal,
 
 from pydantic import BaseModel
 
+from ..taskable import Taskable
+from ..tool import Tool
 from .messages import (
     Completion,
     CompletionChunk,
@@ -10,13 +12,11 @@ from .messages import (
     MessageList,
     aggregate_completion_chunk_aiterable,
 )
-from .taskable import Taskable
-from .tools import Tool
 
-_provider_registry: Dict[str, Type["ModelProvider"]] = {}
+__llm_provider_registry: Dict[str, Type["LlmProvider"]] = {}
 
 
-def provider_factory(provider_name: str, **kwargs) -> "ModelProvider":
+def llm_provider_factory(provider_name: str, **kwargs) -> "LlmProvider":
     """
     Factory method to create a model provider instance.
 
@@ -30,13 +30,9 @@ def provider_factory(provider_name: str, **kwargs) -> "ModelProvider":
     Raises:
         ValueError: If the provider name is not registered.
     """
-    provider_cls = _provider_registry.get(provider_name)
+    provider_cls = __llm_provider_registry.get(provider_name)
     if provider_cls is None:
-        registered_providers = ", ".join(_provider_registry.keys())
-        raise ValueError(
-            f"Unknown provider '{provider_name}'. "
-            f"Available providers are: {registered_providers}"
-        )
+        raise ValueError(f"Unknown provider '{provider_name}'. ")
     return provider_cls(**kwargs)
 
 
@@ -50,20 +46,20 @@ class GenericConfig(BaseModel):
     temperature: float
 
 
-class ModelConfig(BaseModel):
+class LlmConfig(BaseModel):
     generic: GenericConfig
     tool: ToolConfig
 
 
 # Convenience factory function
-def create_config(
+def create_llm_config(
     model: str,
-    temperature: float = 0.7,
+    temperature: float = 0,
     tool_choice: Literal["auto", "none", "required"] = "auto",
     parallel_tool_calls: bool = False,
-) -> ModelConfig:
-    """Create a ModelConfig with sensible defaults."""
-    return ModelConfig(
+) -> LlmConfig:
+    """Create a LlmConfig with sensible defaults."""
+    return LlmConfig(
         generic=GenericConfig(
             model=model,
             temperature=temperature,
@@ -75,7 +71,7 @@ def create_config(
     )
 
 
-class ModelProvider(ABC):
+class LlmProvider(ABC):
     """
     Abstract base class defining the interface for AI model providers.
 
@@ -89,14 +85,15 @@ class ModelProvider(ABC):
     def __init_subclass__(cls, **kwargs):
         """Register provider classes when they are defined."""
         super().__init_subclass__(**kwargs)
-        cls.provider_name = cls.__name__.lower()
-        _provider_registry[cls.provider_name] = cls
+        if not cls.provider_name:
+            cls.provider_name = cls.__name__.lower()
+        __llm_provider_registry[cls.provider_name] = cls
 
     @abstractmethod
     async def complete(
         self,
         *,
-        model_config: ModelConfig,
+        config: LlmConfig,
         messages: List[Message],
         tools: List[Tool],
     ) -> Completion:
@@ -104,7 +101,7 @@ class ModelProvider(ABC):
         Performs an asynchronous completion request to the model.
 
         Args:
-            model_config (ModelConfig): The model configuration to be used for the completion.
+            model_config (LlmConfig): The model configuration to be used for the completion.
             messages (List[Message]): The input message to send to the model.
             tools (List[Tool]): The tools available to the model.
 
@@ -117,7 +114,7 @@ class ModelProvider(ABC):
     async def stream(
         self,
         *,
-        model_config: ModelConfig,
+        config: LlmConfig,
         messages: List[Message],
         tools: List[Tool],
     ) -> AsyncGenerator[CompletionChunk, None]:
@@ -139,25 +136,22 @@ class ModelCall(MessageList):
     tools: List[Tool]
 
 
-class Model(BaseModel, Taskable[ModelCall, CompletionChunk, Completion]):
+class Llm(BaseModel):
     provider_name: str
-    config: ModelConfig
-    input_model = ModelCall
-    chunk_output_model = CompletionChunk
-    aggregate_output_model = Completion
+    config: LlmConfig
 
     def __post_init__(self):
-        self.provider = provider_factory(self.provider_name)
+        self.provider = llm_provider_factory(self.provider_name)
 
     async def stream(self, input: ModelCall) -> AsyncGenerator[CompletionChunk, None]:
         generator = await self.provider.stream(
-            model_config=self.config, messages=input.messages, tools=input.tools
+            config=self.config, messages=input.messages, tools=input.tools
         )
         return generator
 
     async def complete(self, input: ModelCall) -> Completion:
         return await self.provider.complete(
-            model_config=self.config, messages=input.messages, tools=input.tools
+            config=self.config, messages=input.messages, tools=input.tools
         )
 
     async def aggregate(self, chunks: AsyncIterable[CompletionChunk]) -> Completion:

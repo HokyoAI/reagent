@@ -1,7 +1,7 @@
 import pytest
 from dotenv import load_dotenv
 
-from reagent.core.messages import SystemMessage, UserMessage, aggregate_iterable
+from reagent.core.llms.messages import SystemMessage, UserMessage, aggregate_iterable
 from reagent.llm_providers.openai import OpenAI
 from reagent.types.configs import ModelConfig, create_config
 

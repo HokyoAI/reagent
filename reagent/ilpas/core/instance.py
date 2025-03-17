@@ -4,9 +4,9 @@ from uuid import uuid4
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
+from .constants import DEFAULT_SENSITIVE, DEFAULT_TRIGGER_CALLBACK
+from .errors import BadDataError, IlpasValueError
 from .integration import Integration
-from .models.base_model_extras import DEFAULT_SENSITIVE, DEFAULT_TRIGGER_CALLBACK
-from .models.errors import BadDataError, IlpasValueError
 from .models.types import (
     AM,
     ConfigurationSupplier,
@@ -222,9 +222,7 @@ class Instance[_I: AM, _U: AM, _A: AM, _C: AM, _S: AM]():
         )
         return result
 
-    def _get_extra_field[
-        T
-    ](
+    def _get_extra_field[T](
         self, field_info: FieldInfo, field_name: str, field_type: type[T], default: T
     ) -> T:
         if not field_info.json_schema_extra:

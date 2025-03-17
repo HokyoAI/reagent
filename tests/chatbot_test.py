@@ -2,8 +2,8 @@ import pytest
 from dotenv import load_dotenv
 
 from reagent.core.agent import Agent, AgentInput, AgentOutput
-from reagent.core.messages import SystemMessage, UserMessage, aggregate_iterable
-from reagent.core.tools import tool
+from reagent.core.llms.messages import SystemMessage, UserMessage, aggregate_iterable
+from reagent.core.tool import tool
 from reagent.llm_providers.groq import Groq
 from reagent.types.configs import ModelConfig, create_config
 

@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Optional, Set
 
 from cryptography.fernet import Fernet, MultiFernet
 
-from .models.errors import ConflictException, NotFoundException
+from .errors import ConflictException, NotFoundException
 from .models.types import (
     HashedValueDict,
     Labels,

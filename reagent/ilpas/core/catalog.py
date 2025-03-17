@@ -8,16 +8,16 @@ from fastapi.exceptions import RequestValidationError
 from hatchet_sdk import Hatchet
 from pydantic import ValidationError
 
+from .errors import IlpasValueError, NotFoundException
 from .httpx import HttpxAsyncClient
 from .hub import Event, HatchetListener, Hub, Listener
 from .instance import Instance
 from .integration import Integration
-from .models.config_response import (
+from .models.responses.config import (
     ConfigResponse,
     RedirectNotRequired,
     RedirectRequired,
 )
-from .models.errors import IlpasValueError, NotFoundException
 from .models.types import AM, JsonValue
 from .store import Labels, Store
 
@@ -108,7 +108,7 @@ class Catalog:
         async def require_authentication(
             identity: Annotated[
                 tuple[str, Labels] | None, Depends(self._http_authenticate)
-            ]
+            ],
         ):
             if identity is None:
                 raise HTTPException(status_code=401, detail="Not authenticated")
@@ -180,7 +180,7 @@ class Catalog:
 
     def _build_get_integration_info_handler(self):
         async def get_integration(
-            guid: Annotated[str, Depends(self._validate_guid_dep)]
+            guid: Annotated[str, Depends(self._validate_guid_dep)],
         ):
             return self._integration_registry[guid].spec.display
 
@@ -309,7 +309,7 @@ class Catalog:
 
     def _build_delete_instance_handler(self):
         async def delete_instance(
-            instance: Annotated[Instance, Depends(self._require_instance_dep)]
+            instance: Annotated[Instance, Depends(self._require_instance_dep)],
         ):
             await instance.delete()
 

@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import Dict, Iterable, List, Optional, Set
 from uuid import uuid4
 
-from ..core.models.errors import BadDataError, IlpasValueError
+from ..core.errors import BadDataError, IlpasValueError
 from ..core.models.types import (
     Labels,
     LabelValue,

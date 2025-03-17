@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import  ClassVar,  List,  Optional
+from typing import ClassVar, List, Optional
 
 from hatchet_sdk import Hatchet
 from pydantic import BaseModel, Field
 
 from .ledger import Ledger, log_to_ledger
-from .memory import Memory, MemoryStore
-from .model_providers import Model
+from .llms.llms import Llm
+from .memory import MemoryStore
 from .space import Space, SpaceDiff
-from .store import Store
+from .taskable import Taskable
+from .tool import Tool
 
 
 class TaskSpec[_I: BaseModel, _O: BaseModel](BaseModel):
@@ -29,32 +30,6 @@ class Task[_I: BaseModel, _O: BaseModel](BaseModel):
     spec: TaskSpec[_I, _O]
     ledger_id: str
     input: _I
-
-
-class Taskable(ABC):
-
-    @abstractmethod
-    async def complete[_I: BaseModel, _O: BaseModel](self, *, task: Task[_I, _O]) -> _O:
-        pass
-
-
-class Tool[_I: BaseModel, _O: BaseModel](BaseModel, Taskable):
-    guid: str
-    name: str
-    description: str
-    input_model: type[_I]
-    output_model: type[_O]
-
-    itemtype: ClassVar[str] = "tool"
-    requires_approval: ClassVar[bool]
-
-    @abstractmethod
-    async def complete(self, *, task: Task[_I, _O]) -> _O:
-        pass
-
-    @abstractmethod
-    async def setup(self):
-        pass
 
 
 class Plan:
@@ -97,10 +72,10 @@ Monotonic Decomposition: Agents should always be able to make progress on a task
 Don't Know: Agents should be able to say they don't know when they don't have the information or tools to complete a task
 """
 
-ActionSpaceDiff = SpaceDiff["Tool | Agent"]
+ActionSpaceDiff = SpaceDiff[Taskable]
 
 
-class ActionSpace(Space["Tool | Agent"]):
+class ActionSpace(Space[Taskable]):
 
     async def filter(
         self,
@@ -150,8 +125,11 @@ class MemorySpace(Space["Memory"]):
         Returns a new MemorySpaceDiff with the memories that will be useful given the action space diff
         """
         return MemorySpaceDiff()
-    
-    async def store(self, *, )
+
+    async def store(
+        self,
+    ):
+        pass
 
 
 class Prompts(BaseModel):
@@ -182,7 +160,7 @@ def default_agent_options():
     return AgentOptions(space_iterations=1, action_space_no_filter_size=10)
 
 
-class Agent(BaseModel, Taskable):
+class Agent[_I: BaseModel, _O: BaseModel](Taskable[_I, _O]):
 
     guid: str
     store: Store
@@ -195,8 +173,6 @@ class Agent(BaseModel, Taskable):
     recursive: bool = Field(
         False, description="Determines if Agent includes itself in the action_space."
     )
-
-    itemtype: ClassVar[str] = "agent"
 
     def model_post_init(self, __context):
         super().model_post_init(__context)

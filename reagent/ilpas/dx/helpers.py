@@ -2,8 +2,8 @@ from typing import Dict
 
 from pydantic import BaseModel
 
-from ..core.models.base_model_extras import DEFAULT_SENSITIVE, DEFAULT_TRIGGER_CALLBACK
-from ..core.models.types import ConfigurationSupplier, JsonValue, Sensitivity
+from ..core.constants import DEFAULT_SENSITIVE, DEFAULT_TRIGGER_CALLBACK
+from ..core.types import ConfigurationSupplier, JsonValue, Sensitivity
 
 # def extras(
 #     sensitivity: Sensitivity = DEFAULT_SENSITIVE,

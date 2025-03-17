@@ -1,14 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import ClassVar, List, Literal, Optional
+from typing import ClassVar, List, Literal, Optional, TypeVar
 
 from pydantic import BaseModel
 
 
-class Memory(BaseModel):
-    pass
-
-
-class MemoryStore(BaseModel, ABC):
+class MemoryStore[_M: BaseModel, _META: BaseModel](BaseModel, ABC):
     """
     Memory is append only. Earlier memories can be marked as invalid, but never removed.
     This allows memory to be used for auditing, and also preserves more information.
@@ -55,9 +51,9 @@ class MemoryStore(BaseModel, ABC):
     def save(
         self,
         *,
-        info: BaseModel,
+        memory: _M,
         namespace: Optional[str],
-        metadata: Optional[BaseModel] = None,
+        metadata: Optional[_META] = None,
     ) -> str:
         """Store data in memory and return a unique identifier."""
         pass
@@ -68,9 +64,14 @@ class MemoryStore(BaseModel, ABC):
         *,
         namespace: Optional[str],
         identifier: str,
-        revision: str,
+        revision: _M,
+        revision_metadata: Optional[_META] = None,
+        reason: Optional[str] = None,
     ) -> None:
-        """Add a revision to memory that updates, clarifies, or corrects the original data."""
+        """
+        Add a revision to memory that updates, clarifies, or corrects the original data.
+        Does not remove the original data, but marks it as invalid and creates a new more recent memory.
+        """
         pass
 
     @abstractmethod
@@ -79,7 +80,7 @@ class MemoryStore(BaseModel, ABC):
         *,
         namespace: Optional[str],
         identifier: str,
-        reason: str,
+        reason: Optional[str] = None,
     ) -> None:
         """Mark data in memory as invalid."""
         pass
@@ -90,7 +91,7 @@ class MemoryStore(BaseModel, ABC):
         *,
         namespace: Optional[str],
         identifier: str,
-    ) -> BaseModel:
+    ) -> tuple[_M, _META]:
         """Retrieve data from memory using its identifier."""
         pass
 
@@ -101,6 +102,6 @@ class MemoryStore(BaseModel, ABC):
         namespace: Optional[str],
         query: str,
         limit: Optional[int] = None,
-    ) -> List[BaseModel]:
+    ) -> List[tuple[_M, _META]]:
         """Search memory for relevant data based on query."""
         pass

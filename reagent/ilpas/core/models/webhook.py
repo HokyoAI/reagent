@@ -7,6 +7,7 @@ from pydantic import BaseModel
 _T = TypeVar("_T", bound=BaseModel)
 
 
+@dataclass
 class WebhookEvent:
     uid: str
     respond: Optional[Callable[[Request], Awaitable[Response]]]
