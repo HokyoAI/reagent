@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from reagent.core.dependencies.migrator import get_migrator
 from reagent.core.dependencies.session import ns_async_session, shared_async_session
 from reagent.core.errors import NamespaceNotFoundError
-from reagent.core.types import Labels
+from reagent.core.types import Identity
 from reagent.core.utils import SimpleCache, namespace_to_schema
 
 known_schema_cache = SimpleCache()
@@ -60,7 +60,7 @@ async def ensure_schema(
 
 
 @asynccontextmanager
-async def db(identity: tuple[str | None, Labels], auto_create_namespace: bool):
+async def db(identity: Identity, auto_create_namespace: bool):
     """
     Yields an async session for namespace'd database operations.
     If the namespace does not exist, it will be created if auto_create_namespace is True.
@@ -68,7 +68,7 @@ async def db(identity: tuple[str | None, Labels], auto_create_namespace: bool):
     Upon exit, the session is committed or rolled back if an exception occurs.
 
     Args:
-        identity (tuple[str | None, Labels]): A tuple containing the namespace and labels.
+        identity (Identity): A tuple containing the namespace and labels.
         auto_create_namespace (bool): Whether to create the namespace if it does not exist.
 
     Yields:

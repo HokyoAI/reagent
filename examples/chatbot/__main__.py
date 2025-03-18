@@ -1,8 +1,4 @@
-import uvicorn
-from fastapi import FastAPI
-
-# from reagent.core.agent import Agent
-from reagent.core.catalog import Catalog, Labels
+from reagent.core import Agent, Catalog, Identity
 
 # chatbot = Agent()
 
@@ -11,16 +7,15 @@ catalog = Catalog(None, True, True)
 catalog.finalize()
 
 
-async def http_authenticate(username: str) -> tuple[str | None, Labels] | None:
+async def http_authenticate(username: str) -> Identity | None:
     # Placeholder for actual authentication logic
     return None, {"username": username}
 
 
-router, lifespan = catalog.router(http_authenticate=http_authenticate)
-
-app = FastAPI(lifespan=lifespan)
-app.include_router(router)
+app = catalog.api(http_authenticate=http_authenticate)
 
 if __name__ == "__main__":
     # Run the FastAPI app using Uvicorn
+    import uvicorn
+
     uvicorn.run(app)
