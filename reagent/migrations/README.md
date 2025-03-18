@@ -10,3 +10,5 @@ new revision:
 alembic -n namespace revision --autogenerate -m "initial"
 or
 alembic -n shared revision --autogenerate -m "initial"
+
+https://mergeboard.com/blog/6-multitenancy-fastapi-sqlalchemy-postgresql/

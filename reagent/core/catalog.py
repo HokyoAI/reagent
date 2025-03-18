@@ -1,15 +1,21 @@
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 from enum import StrEnum
-from typing import Annotated, Awaitable, Callable, Dict, List, Optional
+from typing import Annotated, AsyncGenerator, Awaitable, Callable, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from hatchet_sdk import Hatchet
 from pydantic import BaseModel, ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
 
+from reagent.core.dependencies.db import db
+from reagent.core.dependencies.engine import close_async_engine, init_async_engine
+from reagent.core.dependencies.migrator import get_migrator
 from reagent.core.dependencies.registry import get_taskable_registry
+from reagent.core.errors import NamespaceNotFoundError
 from reagent.core.taskable import Taskable
 from reagent.core.types import Labels
 
@@ -30,10 +36,17 @@ class IntSum(BaseModel):
 
 class Catalog:
 
-    def __init__(self, hatchet: Optional[Hatchet] = None):
+    def __init__(
+        self,
+        hatchet: Optional[Hatchet] = None,
+        migrate_on_finalize: bool = True,
+        auto_create_namespace: bool = True,
+    ):
         self.hatchet = hatchet
         self.finalized: bool = False
         self._taskable_catalog: dict[str, Taskable] = {}
+        self.migrate_on_finalize = migrate_on_finalize
+        self.auto_create_namespace = auto_create_namespace
 
     def add_taskable(self, *, taskable: Taskable):
         if self.finalized:
@@ -57,13 +70,16 @@ class Catalog:
                 )
                 registry._registry[guid]["execute_fn"] = new_fn
                 registry._registry[guid]["workflow"] = workflow_ref
+        if self.migrate_on_finalize:
+            migrator = get_migrator()
+            migrator.migrate()
         self.finalized = True
 
     def router(
         self,
         *,
-        http_authenticate: Callable[..., Awaitable[tuple[str, Labels] | None]],
-    ) -> APIRouter:
+        http_authenticate: Callable[..., Awaitable[tuple[str | None, Labels] | None]],
+    ):
         if not self.finalized:
             raise RuntimeError("Catalog is not finalized, cannot create router")
 
@@ -74,7 +90,9 @@ class Catalog:
         root_router = APIRouter(prefix="/tasks", tags=["tasks"])
         root_router.include_router(self._build_taskable_router())
 
-        return root_router
+        lifespan_func = self._build_lifespan_func()
+
+        return root_router, lifespan_func
 
     def worker(self):
         if not self.finalized:
@@ -95,12 +113,13 @@ class Catalog:
         self._require_authentication_dep = (
             self._build_require_authentication_dependency()
         )
+        self._require_db_dep = self._build_require_db_dependency()
 
     def _build_require_authentication_dependency(self):
 
         async def require_authentication(
             identity: Annotated[
-                tuple[str, Labels] | None, Depends(self._http_authenticate)
+                tuple[str | None, Labels] | None, Depends(self._http_authenticate)
             ],
         ):
             if identity is None:
@@ -109,10 +128,35 @@ class Catalog:
 
         return require_authentication
 
+    def _build_require_db_dependency(self):
+
+        async def require_db(
+            identity: Annotated[
+                tuple[str | None, Labels], Depends(self._require_authentication_dep)
+            ],
+        ):
+            try:
+                async with db(
+                    identity=identity,
+                    auto_create_namespace=self.auto_create_namespace,
+                ) as session:
+                    yield session
+            except NamespaceNotFoundError:
+                raise HTTPException(status_code=404, detail="Resource not found")
+
+        return require_db
+
     def _build_execute_taskable_handler(self, guid: str):
         taskable = self._taskable_catalog[guid]
 
-        async def execute_taskable(input: taskable.input_model, stream: bool = False):  # type: ignore
+        async def execute_taskable(
+            input: taskable.input_model,  # type: ignore
+            identity: Annotated[
+                tuple[str | None, Labels], Depends(self._require_authentication_dep)
+            ],
+            session: Annotated[AsyncSession, Depends(self._require_db_dep)],
+            stream: bool = False,
+        ):
             result = await taskable(input)
             if stream:
                 return EventSourceResponse(result)
@@ -129,3 +173,13 @@ class Catalog:
             router.post("/" + guid, response_model=output_model)(handler)
 
         return router
+
+    def _build_lifespan_func(self):
+
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            await init_async_engine()
+            yield
+            await close_async_engine()
+
+        return lifespan

@@ -4,8 +4,8 @@ from alembic import context
 from sqlalchemy import MetaData
 
 from reagent.core.dependencies.engine import get_sync_engine, init_sync_engine
-from reagent.core.dependencies.session import namespace_to_schema
 from reagent.core.models import get_reagent_namespace_metadata
+from reagent.core.utils import namespace_to_schema
 
 config = context.config
 
@@ -17,9 +17,10 @@ engine = get_sync_engine()
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+namespace = config.get_main_option("namespace", None)
+
 
 def referred_schema_fn(table, to_schema, constraint, referred_schema):
-    # pylint: disable=unused-argument
     return to_schema
 
 

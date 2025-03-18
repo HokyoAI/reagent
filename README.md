@@ -8,4 +8,3 @@ HATCHET_CLIENT_TLS_STRATEGY=none
 EOF
 
 
-https://mergeboard.com/blog/6-multitenancy-fastapi-sqlalchemy-postgresql/

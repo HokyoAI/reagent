@@ -31,6 +31,14 @@ class NotFoundError(ReagentRuntimeError):
     pass
 
 
+class NamespaceNotFoundError(NotFoundError):
+    """
+    An error raised when a namespace is not found.
+    """
+
+    pass
+
+
 class ConflictError(ReagentRuntimeError):
     """
     An error raised when a resource is in conflict.
