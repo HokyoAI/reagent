@@ -49,29 +49,6 @@ class NeedsMorphing(BaseModel):
     reason: Optional[str] = None
 
 
-"""
-Morphing:
-Dry run the task with no defined action space, let the agent be creative in the tools and delegates it would want to use
-Then display the existing tools and delegates and create a list of updates/additions
-With the new action space let the agent try again and assess
-If the agent fails, add that info to the agent memories and allow
-
-Learning:
-Complete the task hydrated with information, let the agent make fully informed decisions
-If the agent fails, update the information it had access to and let it try again
-
-Morphing should only be used in development
-Production agents should not morph, but can learn
-Using an morphing agent in parallel might to inconsistent states because the action space will change
-Auto morphing can be used to allow agents to morph when they detect a need
-
-4 Principles:
-Informed Decision: Agents should be given as much information as possible to make decisions
-Fast Feedback: Validation of task completions should happen as quick as possible
-Monotonic Decomposition: Agents should always be able to make progress on a task by decomposing it into smaller tasks
-Don't Know: Agents should be able to say they don't know when they don't have the information or tools to complete a task
-"""
-
 ActionSpaceDiff = SpaceDiff[Taskable]
 
 
@@ -163,8 +140,7 @@ def default_agent_options():
 class Agent[_I: BaseModel, _O: BaseModel](Taskable[_I, _O]):
 
     guid: str
-    store: Store
-    model: Model
+    llm: Llm
     options: AgentOptions
     prompts: Prompts
     adapt: AdaptOptions = Field(default_factory=default_adapt_options)

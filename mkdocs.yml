@@ -1,4 +1,4 @@
-site_name: Re:Agent Docs
-site_url: https://docs.hokyo.ai/
+site_name: Reagent Docs
+site_url: https://docs.hokyo.ai/reagent
 theme:
   name: material

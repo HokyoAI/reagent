@@ -16,32 +16,6 @@ from typing import (
 
 from pydantic import BaseModel
 
-from .store import Store, StoreModel
-
-
-class LedgerEntryV1(StoreModel):
-    __search_fields__: ClassVar[Set[str]] = set(["task_id", "source", "type"])
-    __version__: ClassVar[str] = "1.0"
-
-    task_id: str  # task_id
-    source: str  # node guid
-    type: str  # the call made
-    data: BaseModel
-
-
-class LedgerModelV1(StoreModel):
-    __search_fields__: ClassVar[Set[str]] = set()
-    __version__: ClassVar[str] = "1.0"
-
-
-class LedgerEntryRelV1(StoreModel):
-    __search_fields__: ClassVar[Set[str]] = set(["entry_id", "ledger_id"])
-    __version__: ClassVar[str] = "1.0"
-
-    entry_id: str
-    ledger_id: str
-    index: int
-
 
 class Ledger:
 
