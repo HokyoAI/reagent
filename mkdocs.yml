@@ -2,3 +2,6 @@ site_name: Reagent Docs
 site_url: https://docs.hokyo.ai/reagent
 theme:
   name: material
+  icon:
+    repo: fontawesome/brands/github
+repo_url: https://github.com/HokyoAI/reagent
