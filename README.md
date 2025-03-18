@@ -2,14 +2,16 @@
 
 Welcome 👋
 
-Reagent is a free and open source library for building AI Agents. AI Agents use generative AI to complete tasks rather than just generate text. Reagent is built for agents to complete complex long-lived tasks without error. Read more about our [agent philosophy](https://docs.hokyo.ai/reagent/philosophy).
+[Docs](https://docs.hokyo.ai/reagent/getting-started/installation/)
+
+Reagent is a free and open source library for building AI Agents. AI Agents use generative AI to complete tasks rather than just generate text. Reagent is built for agents to complete complex long-lived tasks without error. Read more about our [agent philosophy](https://docs.hokyo.ai/reagent/getting-started/philosophy/).
 
 Reagent was built with 3 goals in mind.
 1. Build agents that can actually complete complicated tasks.
 2. Make it as easy as possible to do so.
 3. Production ready deployment.
 
-To get started with the library check out the starting tutorial at our documentation page.
+To get started with the library check out the [quick start](https://docs.hokyo.ai/reagent/getting-started/quick-start/) tutorial at our documentation page.
 
 If you would like to contribute you are in the right place.
 Morphing:
@@ -26,8 +28,6 @@ Morphing should only be used in development
 Production agents should not morph, but can learn
 Using an morphing agent in parallel might to inconsistent states because the action space will change
 Auto morphing can be used to allow agents to morph when they detect a need
-
-4 Principles:
 
 
 To run Hatchet tests:

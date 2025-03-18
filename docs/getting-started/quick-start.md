@@ -1,4 +1,4 @@
-## Prerequisites
+# Prerequisites
 If you followed the installation guide you should now have a python project with Reagent installed and Docker on your system.
 
 At the very least, Reagent needs a Postgres database to work properly. Future guides will show you how to setup other infrastructure to extend Reagent's capabilities. First let's setup a local Postgres database.
@@ -66,7 +66,9 @@ your-project/
 └── pyproject.toml
 ```
 
-## Cleanup
+# The Good Stuff
+
+# Cleanup
 When you're done with your work, you should stop the Docker containers to free up resources:
 
 ### Using Ctrl+C
