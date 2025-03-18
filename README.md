@@ -2,7 +2,7 @@
 
 Welcome 👋
 
-[Docs](https://docs.hokyo.ai/reagent/getting-started/installation/)
+[Docs](https://docs.hokyo.ai/reagent/)
 
 Reagent is a free and open source library for building AI Agents. AI Agents use generative AI to complete tasks rather than just generate text. Reagent is built for agents to complete complex long-lived tasks without error. Read more about our [agent philosophy](https://docs.hokyo.ai/reagent/getting-started/philosophy/).
 
