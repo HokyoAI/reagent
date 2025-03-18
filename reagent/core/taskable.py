@@ -81,22 +81,9 @@ taskable_registry = TaskableFnRegistry()
 
 class Taskable[_I: BaseModel, _O: BaseModel](BaseModel):
     """
-    Maybe rate limits go here?
-    A protocol that defines the interface for a Taskable.
-
-    Taskables at the very least need to define a run method. The run method returns an async generator.
-    Depending on how the taskable works this run method may take several forms.
-    Aggregating the stream and completion should always end up with the same result.
-
-    No streaming: Fill out complete and use default_stream and default_aggregate
-        _CO = _AO
-        Example: Basic HTTP calls
-    Streaming native: Fill out stream and aggregate and use default_complete
-        Example: Streaming HTTP calls
-    Different streaming and complete behavior: Override all three methods.
-        Use this when completion can be more efficient than streaming and aggregating.
-        Example: Chat completions
-
+    Taskables are simply functions with some metadata.
+    Depending on the context, a taskable may need different code to run with the same signature.
+    The registry provides a way for us to achieve that.
     """
 
     guid: str
