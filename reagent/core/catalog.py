@@ -17,7 +17,7 @@ from reagent.core.dependencies.migrator import get_migrator
 from reagent.core.dependencies.registry import get_taskable_registry
 from reagent.core.errors import NamespaceNotFoundError
 from reagent.core.taskable import Taskable
-from reagent.core.types import Labels
+from reagent.core.types import Identity
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class Catalog:
     def router(
         self,
         *,
-        http_authenticate: Callable[..., Awaitable[tuple[str | None, Labels] | None]],
+        http_authenticate: Callable[..., Awaitable[Identity | None]],
     ):
         if not self.finalized:
             raise RuntimeError("Catalog is not finalized, cannot create router")
@@ -93,6 +93,22 @@ class Catalog:
         lifespan_func = self._build_lifespan_func()
 
         return root_router, lifespan_func
+
+    def api(
+        self,
+        *,
+        http_authenticate: Callable[..., Awaitable[Identity | None]],
+    ):
+        """
+        Returns a FastAPI app with the taskable router and lifespan function.
+        This is a convenience method to create a FastAPI app with the router all in one.
+        """
+        router, lifespan_func = self.router(http_authenticate=http_authenticate)
+
+        app = FastAPI(lifespan=lifespan_func)
+        app.include_router(router)
+
+        return app
 
     def worker(self):
         if not self.finalized:
@@ -118,9 +134,7 @@ class Catalog:
     def _build_require_authentication_dependency(self):
 
         async def require_authentication(
-            identity: Annotated[
-                tuple[str | None, Labels] | None, Depends(self._http_authenticate)
-            ],
+            identity: Annotated[Identity | None, Depends(self._http_authenticate)],
         ):
             if identity is None:
                 raise HTTPException(status_code=401, detail="Not authenticated")
@@ -131,9 +145,7 @@ class Catalog:
     def _build_require_db_dependency(self):
 
         async def require_db(
-            identity: Annotated[
-                tuple[str | None, Labels], Depends(self._require_authentication_dep)
-            ],
+            identity: Annotated[Identity, Depends(self._require_authentication_dep)],
         ):
             try:
                 async with db(
@@ -151,9 +163,7 @@ class Catalog:
 
         async def execute_taskable(
             input: taskable.input_model,  # type: ignore
-            identity: Annotated[
-                tuple[str | None, Labels], Depends(self._require_authentication_dep)
-            ],
+            identity: Annotated[Identity, Depends(self._require_authentication_dep)],
             session: Annotated[AsyncSession, Depends(self._require_db_dep)],
             stream: bool = False,
         ):
