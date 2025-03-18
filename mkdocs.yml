@@ -1,8 +1,19 @@
 site_name: Reagent Docs
 site_url: https://docs.hokyo.ai/reagent
+
+repo_url: https://github.com/HokyoAI/reagent
+repo_name: HokyoAI/reagent
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+
+
 theme:
   name: material
-
   features:
     - navigation.footer
     - navigation.indexes
@@ -13,8 +24,6 @@ theme:
 
   icon:
     repo: fontawesome/brands/github
-repo_url: https://github.com/HokyoAI/reagent
-repo_name: HokyoAI/reagent
 
 nav:
   - Home: index.md
