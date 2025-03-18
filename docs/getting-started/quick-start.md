@@ -56,17 +56,33 @@ This will download the PostgreSQL image (if not already available) and start the
 
 ## Environment Setup
 
-Reagent uses environment variables to configure itself. These variables can be provided from a variety of sources, but for local development the most convenient is a .env file. 
+Reagent uses environment variables to configure itself. These variables can be provided from a variety of sources, but for local development the most convenient is a .env file. Create the .env file in the root of your project.
 
 ```
 your-project/
-├── docker/
-├── your-project/
-├── tests
+├── ...
+├── .env
 └── pyproject.toml
 ```
+Place the Postgres container's configuration in the file. 
+```bash
+POSTGRES__HOST="localhost"
+POSTGRES__PORT="5432"
+POSTGRES__USER="postgres"
+POSTGRES__PASSWORD="postgres"
+POSTGRES__DB="app"
+```
+
+???+ note
+    Those are double underscores in the variable name. This delimiter helps `pydantic-settings` load a nested configuration.
+???+ warning
+    Reagent uses `python-dotenv` to load .env configuration. Any configuration in your .env file will override environment variables set through any other method.
+
 
 # The Good Stuff
+
+Even though Reagent is built for complex agents, let's start with the simplest of all agents: the chatbot. The chatbot has one task, respond to the user. Creating a chatbot is incredibly easy with Reagent.
+
 
 # Cleanup
 When you're done with your work, you should stop the Docker containers to free up resources:
