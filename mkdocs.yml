@@ -2,7 +2,23 @@ site_name: Reagent Docs
 site_url: https://docs.hokyo.ai/reagent
 theme:
   name: material
+
+  features:
+    - navigation.footer
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
+
   icon:
     repo: fontawesome/brands/github
 repo_url: https://github.com/HokyoAI/reagent
 repo_name: HokyoAI/reagent
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+      - Philosophy: getting-started/philosophy.md
