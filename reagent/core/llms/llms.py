@@ -3,7 +3,6 @@ from typing import AsyncGenerator, AsyncIterable, ClassVar, Dict, List, Literal,
 
 from pydantic import BaseModel
 
-from ..taskable import Taskable
 from ..tool import Tool
 from .messages import (
     Completion,

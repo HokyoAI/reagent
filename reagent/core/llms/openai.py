@@ -1,12 +1,11 @@
-from typing import Any, Dict, List, TypedDict
+from typing import Any, Dict, List
 
-from openai import NOT_GIVEN, AsyncOpenAI, pydantic_function_tool
+from openai import AsyncOpenAI, pydantic_function_tool
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionChunk,
     ChatCompletionMessageParam,
     ChatCompletionMessageToolCall,
-    ChatCompletionToolParam,
 )
 from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 from pydantic import BaseModel
