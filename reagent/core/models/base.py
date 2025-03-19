@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
-from typing import Literal, Optional, Type
 
-from sqlalchemy import Column, DateTime, FetchedValue, Index, text
+from sqlalchemy import Column, DateTime, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as SA_UUID
 from sqlalchemy.sql import func

@@ -2,8 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
-from sqlalchemy import Column, Index
+from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship
 
