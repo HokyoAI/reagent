@@ -1,2 +1,2 @@
-from .agent import Agent
+from .agent.agent import Agent
 from .catalog import Catalog, Identity

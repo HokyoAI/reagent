@@ -3,7 +3,6 @@ from typing import AsyncGenerator, AsyncIterable, ClassVar, Dict, List, Literal,
 
 from pydantic import BaseModel
 
-from ..tool import Tool
 from .messages import (
     Completion,
     CompletionChunk,
@@ -70,6 +69,20 @@ def create_llm_config(
     )
 
 
+class LlmTool(BaseModel):
+    name: str
+    description: str
+    input_model: Type[BaseModel]
+
+
+def response_model_llm_tool(response_model: Type[BaseModel]) -> LlmTool:
+    return LlmTool(
+        name=response_model.__name__,
+        description=response_model.__doc__ or "",
+        input_model=response_model,
+    )
+
+
 class LlmProvider(ABC):
     """
     Abstract base class defining the interface for AI model providers.
@@ -94,7 +107,7 @@ class LlmProvider(ABC):
         *,
         config: LlmConfig,
         messages: List[Message],
-        tools: List[Tool],
+        tools: List[LlmTool],
     ) -> Completion:
         """
         Performs an asynchronous completion request to the model.
@@ -102,7 +115,7 @@ class LlmProvider(ABC):
         Args:
             model_config (LlmConfig): The model configuration to be used for the completion.
             messages (List[Message]): The input message to send to the model.
-            tools (List[Tool]): The tools available to the model.
+            tools (List[LlmTool]): The tools available to the model.
 
         Returns:
             Completion: The model's response.
@@ -115,7 +128,7 @@ class LlmProvider(ABC):
         *,
         config: LlmConfig,
         messages: List[Message],
-        tools: List[Tool],
+        tools: List[LlmTool],
     ) -> AsyncGenerator[CompletionChunk, None]:
         """
         Performs an asynchronous streaming completion request to the model.
@@ -123,7 +136,7 @@ class LlmProvider(ABC):
         Args:
             model_config (ModelConfig): The model configuration to be used for the completion.
             messages (List[Message]): The input message to send to the model.
-            tools (List[Tool]): The tools available to the model.
+            tools (List[LlmTool]): The tools available to the model.
 
         Returns:
             AsyncGenerator[CompletionChunk, None]: An async generator that yields response chunks.
@@ -132,7 +145,7 @@ class LlmProvider(ABC):
 
 
 class ModelCall(MessageList):
-    tools: List[Tool]
+    tools: List[LlmTool]
 
 
 class Llm(BaseModel):

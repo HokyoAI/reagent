@@ -58,10 +58,10 @@ class TaskableFnRegistry:
             output = await fn(input)
             return output.model_dump()
 
-        workflow_step = step("begin")(step_fn)
+        workflow_step = step("begin")(step_fn)  # hatchet step decorator
         workflow_name = f"{fn.__name__}_workflow"
         workflow_class = type(workflow_name, (), {workflow_name: workflow_step})
-        workflow_ref = workflow()(workflow_class)
+        workflow_ref = workflow()(workflow_class)  # hatchet workflow decorator
 
         @wraps(fn)
         async def execute_fn(input: BaseModel) -> BaseModel:
@@ -82,33 +82,50 @@ taskable_registry = TaskableFnRegistry()
 class Taskable[_I: BaseModel, _O: BaseModel](BaseModel):
     """
     Taskables are simply functions with some metadata.
+    GOTCHA: Functions must be set after instantiation. This is because agents must generate their fn.
     Depending on the context, a taskable may need different code to run with the same signature.
     The registry provides a way for us to achieve that.
     """
 
     guid: str
-    fn: Callable[[_I], Awaitable[_O]]
+    description: str
     input_model: type[_I]
     output_model: type[_O]
+    function: Optional[Callable[[_I], Awaitable[_O]]]
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     def model_post_init(self, __context):
-        result = super().model_post_init(__context)
-        self._fn = self.fn
-        return result
+        super().model_post_init(__context)
+        if self.function is not None:
+            self.fn = self.function  # Set the function if provided during instantiation
 
     @property
-    def _fn(self) -> Callable[[_I], Awaitable[_O]]:
+    def fn(self) -> Callable[[_I], Awaitable[_O]]:
         # Always retrieve the current version from registry
-        return taskable_registry.get(self.guid)
+        try:
+            return taskable_registry.get(self.guid)
+        except:
+            raise ValueError(
+                f"Taskable with guid '{self.guid}' not found in registry. Must assign a function to it before calling."
+            )
 
-    @_fn.setter
-    def _fn(self, function: Callable[[_I], Awaitable[_O]]):
+    @fn.setter
+    def fn(self, function: Callable[[_I], Awaitable[_O]]):
         # Store the function and make it available in the registry
         taskable_registry.register(
             self.guid, function, self.input_model, self.output_model
         )
 
     async def __call__(self, input: _I) -> _O:
-        return await self._fn(input)
+        return await self.fn(input)
+
+
+def checkpoint(*args, checkpoint_name: str):
+    pass
+
+
+async def call_taskable[_I: BaseModel, _O: BaseModel](
+    taskable: Taskable[_I, _O], input: _I
+) -> _O:
+    return await taskable(input)

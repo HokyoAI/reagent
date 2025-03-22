@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from reagent.core.memory import StateStore
+from reagent.core.memory.base import StateStore
 
 
 class LocalStateStore(StateStore):

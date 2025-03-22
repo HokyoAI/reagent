@@ -1,4 +1,9 @@
-from typing import Iterable, Optional
+from typing import Iterable, List, Optional
+
+from pydantic import BaseModel
+
+from ..memory.base import MemoryStore
+from ..taskable import Taskable
 
 
 class Space[T]:
@@ -158,3 +163,67 @@ class SpaceDiff[T]:
         positives = [e for e, p in self.elements.items() if p > 0]
         negatives = [e for e, p in self.elements.items() if p < 0]
         return f"SpaceDiff(+{positives}, -{negatives})"
+
+
+ActionSpaceDiff = SpaceDiff[Taskable]
+
+
+class ActionSpace(Space[Taskable]):
+
+    async def filter(
+        self,
+        *,
+        input: BaseModel,
+    ) -> "ActionSpace":
+        """
+        TODO
+        Returns a new ActionSpace with only the tools and agents that can be used for the task
+        """
+        return self
+
+    async def diff(
+        self, *, input: BaseModel, memory_space_diff: "MemorySpaceDiff"
+    ) -> ActionSpaceDiff:
+        """
+        TODO
+        Returns a new ActionSpaceDiff with the tools and agents that will be useful given the memory space diff
+        """
+        return ActionSpaceDiff()
+
+
+MemorySpaceDiff = SpaceDiff["Memory"]
+
+
+class MemorySpace(Space["Memory"]):
+
+    @classmethod
+    async def populate(
+        cls,
+        *,
+        input: BaseModel,
+        action_space: ActionSpace,
+        memory_stores: List[MemoryStore],
+    ) -> "MemorySpace":
+        """
+        TODO
+        Returns a new MemorySpace with the memories that will be useful given the action space and memory stores
+        """
+        return cls()
+
+    async def diff(
+        self,
+        *,
+        input: BaseModel,
+        action_space_diff: ActionSpaceDiff,
+        memory_stores: List[MemoryStore],
+    ) -> "MemorySpaceDiff":
+        """
+        TODO
+        Returns a new MemorySpaceDiff with the memories that will be useful given the action space diff
+        """
+        return MemorySpaceDiff()
+
+    async def store(
+        self,
+    ):
+        pass

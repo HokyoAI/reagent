@@ -7,7 +7,6 @@ from reagent.core.taskable import Taskable
 
 
 class Tool[_I: BaseModel, _O: BaseModel](Taskable[_I, _O]):
-    description: str
     requires_approval: bool
 
 
@@ -43,11 +42,11 @@ def tool(guid: Optional[str] = None, requires_approval=False):
         description = fn_doc.strip()
         tool = Tool[_I, _O](
             guid=guid if guid is not None else fn.__name__.lower(),
-            fn=fn,
+            function=fn,
             description=description,
-            requires_approval=requires_approval,
             input_model=input_model,
             output_model=output_model,
+            requires_approval=requires_approval,
         )
 
         return tool

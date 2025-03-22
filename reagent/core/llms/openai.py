@@ -10,7 +10,7 @@ from openai.types.chat import (
 from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 from pydantic import BaseModel
 
-from reagent.core.llms.llms import LlmConfig, LlmProvider
+from reagent.core.llms.llms import LlmConfig, LlmProvider, LlmTool
 from reagent.core.llms.messages import (
     Completion,
     CompletionChunk,
@@ -18,8 +18,6 @@ from reagent.core.llms.messages import (
     ToolCall,
     ToolCallChunk,
 )
-
-from ..tool import Tool
 
 
 class OpenAI(LlmProvider):
@@ -43,13 +41,13 @@ class OpenAI(LlmProvider):
         return config.generic.model_dump()
 
     def _prepare_tool_params(
-        self, tools: List[Tool[BaseModel, BaseModel]], config: LlmConfig
+        self, tools: List[LlmTool], config: LlmConfig
     ) -> Dict[str, Any]:
         """
         Prepares a list of tools to be sent to the OpenAI API.
 
         Args:
-            tools (List[Tool]): The tools to be converted.
+            tools (List[LlmTool]): The tools to be converted.
 
         Returns:
             List[ChatCompletionToolParam]: The appropriate format for OpenAI tools.
@@ -59,7 +57,7 @@ class OpenAI(LlmProvider):
             tool_params = {
                 "tools": [
                     pydantic_function_tool(
-                        tool.input_model, name=tool.guid, description=tool.description
+                        tool.input_model, name=tool.name, description=tool.description
                     )
                     for tool in tools
                 ],
@@ -229,7 +227,7 @@ class OpenAI(LlmProvider):
         *,
         config: LlmConfig,
         messages: List[Message],
-        tools: List[Tool],
+        tools: List[LlmTool],
     ):
         response = await self.client.chat.completions.create(
             stream=False,
@@ -244,7 +242,7 @@ class OpenAI(LlmProvider):
         *,
         config: LlmConfig,
         messages: List[Message],
-        tools: List[Tool],
+        tools: List[LlmTool],
     ):
 
         async def _generator():

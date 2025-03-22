@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from reagent.core.dependencies.migrator import get_migrator
 from reagent.core.dependencies.session import ns_async_session, shared_async_session
-from reagent.core.errors import NamespaceNotFoundError
 from reagent.core.types import Identity
+from reagent.core.types.errors import NamespaceNotFoundError
 from reagent.core.utils import SimpleCache, namespace_to_schema
 
 known_schema_cache = SimpleCache()

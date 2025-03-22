@@ -15,9 +15,9 @@ from reagent.core.dependencies.db import db
 from reagent.core.dependencies.engine import close_async_engine, init_async_engine
 from reagent.core.dependencies.migrator import get_migrator
 from reagent.core.dependencies.registry import get_taskable_registry
-from reagent.core.errors import NamespaceNotFoundError
 from reagent.core.taskable import Taskable
 from reagent.core.types import Identity
+from reagent.core.types.errors import NamespaceNotFoundError
 
 logger = logging.getLogger(__name__)
 
